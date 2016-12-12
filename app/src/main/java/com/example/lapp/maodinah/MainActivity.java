@@ -49,13 +49,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     static double x1, x2, y1, y2;
     static Point start, end;
     static Mat matGlobal;
-    private boolean tocou = false;
-    private Point centroid;
-    private Mat nonZero = new Mat();
-    private Mat MatrizTocada;
-    private Scalar minHSV = new Scalar(3);
-    private Scalar maxHSV = new Scalar(3);
-    private List<Point> dedos;
 
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -67,6 +60,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     }
 
     JavaCameraView javaCameraView;
+    private boolean tocou = false;
+    private Point centroid;
+    private Mat nonZero = new Mat();
+    private Mat MatrizTocada;
+    private Scalar minHSV = new Scalar(3);
+    private Scalar maxHSV = new Scalar(3);
+    private List<Point> dedos;
     private Mat frame;
     private Mat framesegundo;
     private Mat h = new Mat(); // hierarquia findContours
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             javaCameraView.enableFpsMeter();
             height = javaCameraView.getHeight();
             width = javaCameraView.getWidth();
-            javaCameraView.setMaxFrameSize(960,480);
+            javaCameraView.setMaxFrameSize(960, 480);
         }
     }
 
@@ -110,8 +110,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public void onCameraViewStarted(int width, int height) {
         lowerBound = new Scalar(3);
         upperBound = new Scalar(3);
-        centroid  = new Point(-1,-1);
-        setScaleFactors(width,height);
+        centroid = new Point(-1, -1);
+        setScaleFactors(width, height);
         hullPoints = new MatOfPoint();
         hull = new MatOfInt();
     }
@@ -128,19 +128,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         matGlobal = inputFrame.rgba();
-        /*Mat mRgba = inputFrame.rgba();
-        Mat mRgbaT = mRgba.t();
-        Core.flip(mRgba.t(), mRgbaT, 1);
-        Imgproc.resize(mRgbaT, mRgbaT, mRgba.size());
-        //return mRgbaT;
-        */
         return paulsMethodForImageTransformation(inputFrame.rgba());
     }
 
-    private void setHSVavg(Mat frame){
+    private void setHSVavg(Mat frame) {
 
-        int x = (int)centroid.x;
-        int y = (int)centroid.y;
+        int x = (int) centroid.x;
+        int y = (int) centroid.y;
 
         int rows = frame.rows();
         int cols = frame.cols();
@@ -148,17 +142,15 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         Rect retanguloTocado = new Rect();
         int ladoRet = 20;
 
-        if (x > ladoRet){
+        if (x > ladoRet) {
             retanguloTocado.x = x - ladoRet;
-        }
-        else {
+        } else {
             retanguloTocado.x = 0;
         }
 
-        if (y > ladoRet){
+        if (y > ladoRet) {
             retanguloTocado.y = y - ladoRet;
-        }
-        else {
+        } else {
             retanguloTocado.y = 0;
         }
 
@@ -174,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         assignHSV(avgHSV);
     }
 
-    private void assignHSV(double avgHSV[]){
+    private void assignHSV(double avgHSV[]) {
         //B
         minHSV.val[0] = (avgHSV[0] > 10) ? avgHSV[0] - 10 : 0;
         maxHSV.val[0] = (avgHSV[0] < 245) ? avgHSV[0] + 10 : 255;
@@ -187,80 +179,79 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     }
 
 
-    protected void setScaleFactors(int vidWidth, int vidHeight){
+    protected void setScaleFactors(int vidWidth, int vidHeight) {
         float deviceWidth = javaCameraView.getWidth();
         float deviceHeight = javaCameraView.getHeight();
-        if(deviceHeight - vidHeight < deviceWidth - vidWidth){
+        if (deviceHeight - vidHeight < deviceWidth - vidWidth) {
             float temp = vidWidth * deviceHeight / vidHeight;
             offsetFactY = 0;
             offsetFactX = (deviceWidth - temp) / 2;
             scaleFactY = vidHeight / deviceHeight;
             scaleFactX = vidWidth / temp;
-        }
-        else{
+        } else {
             float temp = vidHeight * deviceWidth / vidWidth;
-            offsetFactX= 0;
+            offsetFactX = 0;
             offsetFactY = (deviceHeight - temp) / 2;
             scaleFactX = vidWidth / deviceWidth;
             scaleFactY = vidHeight / temp;
         }
     }
 
-    public boolean onTouchEvent(MotionEvent event){
+    public boolean onTouchEvent(MotionEvent event) {
 
-        if(!tocou){
-            frame = matGlobal.clone();
-            Imgproc.GaussianBlur(frame, frame , new Size(9,9),5 );
-
-            /*
-            int x = Math.round((event.getX()));
-            int y = Math.round((event.getY()));
-            */
-            int x = Math.round((event.getX() - offsetFactX) * scaleFactX) ;
-            int y = Math.round((event.getY() - offsetFactY) * scaleFactY);
-
-            int rows = frame.rows();
-            int cols = frame.cols();
-
-
-            if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) return false;
-
-            centroid.x = x;
-            centroid.y = y;
-
-            setHSVavg(frame);
-
-            tocou = true;
-        }
+//        if (!tocou) {
+//            frame = matGlobal.clone();
+//            Imgproc.GaussianBlur(frame, frame, new Size(9, 9), 5);
+//
+//            /*
+//            int x = Math.round((event.getX()));
+//            int y = Math.round((event.getY()));
+//            */
+//            int x = Math.round((event.getX() - offsetFactX) * scaleFactX);
+//            int y = Math.round((event.getY() - offsetFactY) * scaleFactY);
+//
+//            int rows = frame.rows();
+//            int cols = frame.cols();
+//
+//
+//            if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) return false;
+//
+//            centroid.x = x;
+//            centroid.y = y;
+//
+//            setHSVavg(frame);
+//
+//            tocou = true;
+//        }
 
         return false;
     }
 
-    private ArrayList<MatOfPoint> getAllContornos(Mat frame){
+    private ArrayList<MatOfPoint> getAllContornos(Mat frame) {
         framesegundo = frame.clone();
         ArrayList<MatOfPoint> contor = new ArrayList<MatOfPoint>();
         Imgproc.findContours(framesegundo,
                 contor,
                 h,
                 Imgproc.RETR_EXTERNAL,
-                Imgproc.CHAIN_APPROX_SIMPLE );
+                Imgproc.CHAIN_APPROX_SIMPLE);
 
         return contor;
     }
 
-    protected int getPalmContour(List<MatOfPoint> contours){
+    protected int getPalmContour(List<MatOfPoint> contours) {
 
         Rect roi;
         int indexOfMaxContour = -1;
         for (int i = 0; i < contours.size(); i++) {
             roi = Imgproc.boundingRect(contours.get(i));
-            if(roi.contains(centroid))
+            if (roi.contains(centroid))
                 return i;
         }
         return indexOfMaxContour;
     }
 
-    protected Point getDistanceTransformCenter(Mat frame){
+    protected Point getDistanceTransformCenter(Mat frame) {
 
         Imgproc.distanceTransform(frame, frame, Imgproc.CV_DIST_L2, 3);
         frame.convertTo(frame, CvType.CV_8UC1);
@@ -270,50 +261,54 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         // have to manually loop through matrix to calculate sums
         int sumx = 0, sumy = 0;
-        for(int i = 0; i < nonZero.rows(); i++) {
-            sumx += nonZero.get(i, 0)[0];
-            sumy += nonZero.get(i, 0)[1];
+        if (nonZero.rows() > 0) {
+            for (int i = 0; i < nonZero.rows(); i++) {
+                sumx += nonZero.get(i, 0)[0];
+                sumy += nonZero.get(i, 0)[1];
+            }
+            sumx /= nonZero.rows();
+            sumy /= nonZero.rows();
         }
-        sumx /= nonZero.rows();
-        sumy /= nonZero.rows();
 
         return new Point(sumx, sumy);
     }
-    protected List<Point> getConvexHullPoints(MatOfPoint contour){
+
+    protected List<Point> getConvexHullPoints(MatOfPoint contour) {
         Imgproc.convexHull(contour, hull);
         List<Point> hullPoints = new ArrayList<>();
-        for(int j=0; j < hull.toList().size(); j++){
+        for (int j = 0; j < hull.toList().size(); j++) {
             hullPoints.add(contour.toList().get(hull.toList().get(j)));
         }
         return hullPoints;
     }
 
-    protected double getEuclDistance(Point one, Point two){
+    protected double getEuclDistance(Point one, Point two) {
         return Math.sqrt(Math.pow((two.x - one.x), 2)
                 + Math.pow((two.y - one.y), 2));
     }
-    protected List<Point> getDedos(List<Point> hullPoints, int rows){
+
+    protected List<Point> getDedos(List<Point> hullPoints, int rows) {
         // group into clusters and find distance between each cluster. distance should approx be same
         double betwFingersThresh = 80;
         double distFromCenterThresh = 80;
         double thresh = 80;
-        List<Point> fingerTips  = new ArrayList<>();
-        for(int i=0; i<hullPoints.size(); i++){
+        List<Point> fingerTips = new ArrayList<>();
+        for (int i = 0; i < hullPoints.size(); i++) {
             Point point = hullPoints.get(i);
-            if(rows - point.y < thresh)
+            if (rows - point.y < thresh)
                 continue;
-            if(fingerTips.size() == 0){
+            if (fingerTips.size() == 0) {
                 fingerTips.add(point);
                 continue;
             }
             Point prev = fingerTips.get(fingerTips.size() - 1);
             double euclDist = getEuclDistance(prev, point);
 
-            if(getEuclDistance(prev, point) > thresh/2 &&
+            if (getEuclDistance(prev, point) > thresh / 2 &&
                     getEuclDistance(centroid, point) > thresh)
                 fingerTips.add(point);
 
-            if(fingerTips.size() == 5)
+            if (fingerTips.size() == 5)
                 break;
         }
         return fingerTips;
@@ -322,55 +317,82 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     public Mat paulsMethodForImageTransformation(Mat inputFrame) {
         //if  (tocou){
-            frame = matGlobal.clone();
-            Imgproc.GaussianBlur(frame, frame , new Size(9,9),5 );
+        frame = matGlobal.clone();
+        Imgproc.GaussianBlur(frame, frame, new Size(9, 9), 5);
 
             /*
             int x = Math.round((event.getX()));
             int y = Math.round((event.getY()));
             */
-            int x = Math.round(((javaCameraView.getWidth()/2) - offsetFactX) * scaleFactX) ;
-            int y = Math.round(((javaCameraView.getHeight()/2) - offsetFactY) * scaleFactY);
+        int x = Math.round(((javaCameraView.getWidth() / 2) - offsetFactX) * scaleFactX);
+        int y = Math.round(((javaCameraView.getHeight() / 2) - offsetFactY) * scaleFactY);
 
-            int rows = frame.rows();
-            int cols = frame.cols();
+        int rows = frame.rows();
+        int cols = frame.cols();
 
-            if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) return inputFrame;
+        if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) {
+            Log.d(TAG, "ENTREI ANTES");
+            return inputFrame;
+        }
 
-            centroid.x = x;
-            centroid.y = y;
+        centroid.x = x;
+        centroid.y = y;
 
-            setHSVavg(frame);
+        setHSVavg(frame);
 
+        frame = inputFrame.clone();
+        Imgproc.GaussianBlur(frame, frame, new Size(9, 9), 5);
+        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV_FULL);
+        Core.inRange(frame, minHSV, maxHSV, frame);
+        //Imgproc.threshold(frame, frame, 0, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
+        contornos = getAllContornos(frame);
+        int indiceContorno = getPalmContour(contornos);
 
-            frame = inputFrame.clone();
-            Imgproc.GaussianBlur(frame, frame, new Size(9, 9), 5);
-            Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV_FULL);
-            Core.inRange(frame, minHSV, maxHSV, frame);
-            //Imgproc.threshold(frame, frame, 0, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
-            contornos = getAllContornos(frame);
-            int indiceContorno = getPalmContour(contornos);
+        if (indiceContorno == -1) {
+            Log.d(TAG, "ENTREI INDEX -1");
+            return frame;
+        } else {
+            Point center = getDistanceTransformCenter(frame);
+            Rect handRect = Imgproc.boundingRect(contornos.get(indiceContorno));
+            double radius = handRect.height / 3;
+            Rect palmCircle = new Rect((int) (center.x - radius), (int) (center.y - radius), (int) (radius * 2), (int) (radius * 2));
+            //frame = new Mat(matGlobal.clone(), roi);
+//            List<Point> hullPoints = getConvexHullPoints(contornos.get(indiceContorno));
+//            dedos = getDedos(hullPoints, frame.rows());
+//            Collections.reverse(dedos);
+//            for (int i = 0; i + 1 < dedos.size(); i++) {
+//                Imgproc.line(frame, dedos.get(i), dedos.get(i + 1), new Scalar(0, 255, 0), 2);
+//            }
+            //Log.d(TAG, "br = " + roi.br() + " tl = " + roi.tl());
+            //Imgproc.rectangle(frame, roi.tl(), roi.br(), new Scalar(255), 4);
+            //Imgproc.circle(frame, palma, roi.height / 3, new Scalar(255)); // circulo
+            //Imgproc.drawContours(frame, contornos, -1, new Scalar(200, 200, 0), 2);
+            Rect imgRect = new Rect(0, 0, inputFrame.width(), inputFrame.height());
 
-            if  (indiceContorno == -1) {
-                return frame;
+            // TOP RIGHT
+            Point tr = new Point();
+            tr.x = palmCircle.tl().x + palmCircle.width;
+            tr.y = palmCircle.tl().y;
+
+            // BOTTOM LEFT
+            Point bl = new Point();
+            bl.x = 0;
+            bl.y = palmCircle.br().y;
+
+            if (imgRect.contains(palmCircle.br()) && imgRect.contains(palmCircle.tl()) && imgRect.contains(tr) && imgRect.contains(bl)) {
+                Log.d(TAG, "RETORNANDO SUBMAT");
+                Mat teste = new Mat(inputFrame.size(), inputFrame.type(), new Scalar(0, 0, 0));
+                Imgproc.rectangle(teste, palmCircle.tl(), palmCircle.br(), new Scalar(255), 4);
+                //Mat temp = inputFrame.submat(palmCircle);
+                //temp.copyTo(teste);
+                Log.d(TAG, "SAI");
+                return teste;
             }
             else {
-                Point palma = getDistanceTransformCenter(frame);
-                Rect roi = Imgproc.boundingRect(contornos.get(indiceContorno));
-
-                List<Point> hullPoints = getConvexHullPoints(contornos.get(indiceContorno));
-                dedos = getDedos(hullPoints, frame.rows());
-                Collections.reverse(dedos);
-                for(int i = 0; i+1 < dedos.size(); i++){
-                    Imgproc.line(frame, dedos.get(i), dedos.get(i+1), new Scalar(0,255,0),2);
-                }
-                Log.d(TAG, "br = " + roi.br() + " tl = " + roi.tl());
-                Imgproc.rectangle(frame,roi.tl(),roi.br(),new Scalar(255),4);
-                Imgproc.circle(frame, palma, roi.height/2, new Scalar(255));
-                Imgproc.drawContours(frame, contornos, -1, new Scalar(200, 200, 0), 2);
-
-                return frame;
+                Log.d(TAG, "RETORNANDO NORMAL DEPOIS DE SUBMAT");
+                return inputFrame;
             }
+        }
         //} else return inputFrame;
 
     }
