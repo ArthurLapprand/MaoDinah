@@ -86,11 +86,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // checar permissoes
+        checarPerms();
         getSupportActionBar().hide();
         setContentView(R.layout.activity_main);
 
-        // checar permissoes
-        checarPerms();
 
         // seta a view da camera
         javaCameraView = (JavaCameraView) findViewById(R.id.camera_view);
@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public void onCameraViewStopped() {
-        frame.release();
+        if (frame != null) frame.release();
 
         if (javaCameraView.isEnabled()) {
             javaCameraView.disableView();
@@ -388,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         } else {
             Point center = getDistanceTransformCenter(frame);
             Rect handRect = Imgproc.boundingRect(contornos.get(indiceContorno));
-            double radius = handRect.height / 3;
+            double radius = handRect.height / 2.66;
             Rect palmRect = new Rect((int) (center.x - radius), (int) (center.y - radius), (int) (radius * 2), (int) (radius * 2));
             //frame = new Mat(matGlobal.clone(), roi);
 //            List<Point> hullPoints = getConvexHullPoints(contornos.get(indiceContorno));
@@ -414,13 +414,24 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             bl.y = palmRect.br().y;
 
             if (imgRect.contains(palmRect.br()) && imgRect.contains(palmRect.tl()) && imgRect.contains(tr) && imgRect.contains(bl)) {
+                Mat original_image = inputFrame.clone();
                 Log.d(TAG, "RETORNANDO SUBMAT");
                 Log.d(TAG, "TOP_LEFT = " + palmRect.tl() + "  TOP_RIGHT = " + tr + "  BOTTOM_LEFT = " + bl + "  BOTTOM_RIGHT = " + palmRect.br());
-                Mat teste = new Mat(inputFrame.size(), inputFrame.type(), new Scalar(0, 0, 0));
+                Mat teste = new Mat(original_image.size(), original_image.type(), new Scalar(0, 0, 0));
                 Imgproc.rectangle(teste, palmRect.tl(), palmRect.br(), new Scalar(255), 4);
-                //Mat temp = inputFrame.clone();
-                //temp = temp.submat(palmRect);
-                //temp.copyTo(teste);
+                Mat temp = original_image.submat(palmRect);
+                Mat mask = temp.clone();
+                //Mat mask = new Mat(temp.size(), CvType.CV_8U, new Scalar(0, 0, 0));
+                temp.copyTo(teste, mask);
+                Imgproc.resize(teste, teste, original_image.size());
+//                Mat inMat = inputFrame.submat(palmRect);
+//                Mat mask = new Mat(palmRect.size(), CvType.CV_8UC4);
+//                Mat out = new Mat(inputFrame.size(), inputFrame.type(), new Scalar(0, 0, 0));
+//                inMat.copyTo(out, mask);
+                //Mat teste = new Mat(inputFrame.size(), inputFrame.type(), new Scalar(0, 0, 0));
+                //Mat cropped = new Mat(inputFrame, palmRect);
+                //Mat mask = new Mat(cropped.rows(), cropped.cols(), inputFrame.type());
+                //cropped.copyTo(teste, mask);
                 Log.d(TAG, "SAI");
                 return teste;
             }
