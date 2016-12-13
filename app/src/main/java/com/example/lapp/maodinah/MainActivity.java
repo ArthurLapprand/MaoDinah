@@ -1,7 +1,11 @@
 package com.example.lapp.maodinah;
 
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -35,6 +39,7 @@ import static android.R.attr.bitmap;
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private static final String TAG = "MAODINAH";
+    public static final int CAMERA_REQUEST_CODE = 1;
     static boolean initialized;
     static int height;
     static int width;
@@ -84,6 +89,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         getSupportActionBar().hide();
         setContentView(R.layout.activity_main);
 
+        // checar permissoes
+        checarPerms();
+
         // seta a view da camera
         javaCameraView = (JavaCameraView) findViewById(R.id.camera_view);
 
@@ -95,6 +103,32 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             height = javaCameraView.getHeight();
             width = javaCameraView.getWidth();
             javaCameraView.setMaxFrameSize(960, 480);
+        }
+    }
+
+    private void checarPerms() {
+        if (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    android.Manifest.permission.CAMERA)) {
+                // DEVE MOSTRAR EXPLICACAO CASO PRECISE, DEVE SER ASSINC
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.CAMERA},
+                        CAMERA_REQUEST_CODE);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case CAMERA_REQUEST_CODE: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                } else {}
+            }
         }
     }
 
@@ -350,12 +384,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         if (indiceContorno == -1) {
             Log.d(TAG, "ENTREI INDEX -1");
-            return frame;
+            return inputFrame;
         } else {
             Point center = getDistanceTransformCenter(frame);
             Rect handRect = Imgproc.boundingRect(contornos.get(indiceContorno));
             double radius = handRect.height / 3;
-            Rect palmCircle = new Rect((int) (center.x - radius), (int) (center.y - radius), (int) (radius * 2), (int) (radius * 2));
+            Rect palmRect = new Rect((int) (center.x - radius), (int) (center.y - radius), (int) (radius * 2), (int) (radius * 2));
             //frame = new Mat(matGlobal.clone(), roi);
 //            List<Point> hullPoints = getConvexHullPoints(contornos.get(indiceContorno));
 //            dedos = getDedos(hullPoints, frame.rows());
@@ -371,19 +405,21 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
             // TOP RIGHT
             Point tr = new Point();
-            tr.x = palmCircle.tl().x + palmCircle.width;
-            tr.y = palmCircle.tl().y;
+            tr.x = palmRect.tl().x + palmRect.width;
+            tr.y = palmRect.tl().y;
 
             // BOTTOM LEFT
             Point bl = new Point();
-            bl.x = 0;
-            bl.y = palmCircle.br().y;
+            bl.x = palmRect.tl().x;
+            bl.y = palmRect.br().y;
 
-            if (imgRect.contains(palmCircle.br()) && imgRect.contains(palmCircle.tl()) && imgRect.contains(tr) && imgRect.contains(bl)) {
+            if (imgRect.contains(palmRect.br()) && imgRect.contains(palmRect.tl()) && imgRect.contains(tr) && imgRect.contains(bl)) {
                 Log.d(TAG, "RETORNANDO SUBMAT");
+                Log.d(TAG, "TOP_LEFT = " + palmRect.tl() + "  TOP_RIGHT = " + tr + "  BOTTOM_LEFT = " + bl + "  BOTTOM_RIGHT = " + palmRect.br());
                 Mat teste = new Mat(inputFrame.size(), inputFrame.type(), new Scalar(0, 0, 0));
-                Imgproc.rectangle(teste, palmCircle.tl(), palmCircle.br(), new Scalar(255), 4);
-                //Mat temp = inputFrame.submat(palmCircle);
+                Imgproc.rectangle(teste, palmRect.tl(), palmRect.br(), new Scalar(255), 4);
+                //Mat temp = inputFrame.clone();
+                //temp = temp.submat(palmRect);
                 //temp.copyTo(teste);
                 Log.d(TAG, "SAI");
                 return teste;
