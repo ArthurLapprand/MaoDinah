@@ -46,8 +46,9 @@ public class MainActivity extends Activity  {
         // make a mat and draw something
         //File f = new File("/sdcard/Download/");
         //String[] paths = f.list();
-        Mat palm = Imgcodecs.imread(Environment.getExternalStorageDirectory().getPath() + "/Download/uJxZT6o.jpg", Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
-
+        Mat original_image = Imgcodecs.imread(Environment.getExternalStorageDirectory().getPath() + "/Download/uJxZT6o.jpg", Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
+        Mat palm = original_image.clone();
+        Imgproc.cvtColor(palm, palm, Imgproc.COLOR_RGBA2GRAY);
         Imgproc.GaussianBlur(palm, palm, new Size(19, 19), 500);
         Imgproc.equalizeHist(palm, palm);
 
@@ -76,22 +77,21 @@ public class MainActivity extends Activity  {
 //        dst.setTo(new Scalar(0));
 //        palm.copyTo(dst, edges);
 
-        Imgproc.HoughLines(palm, edges, 1, Math.PI / 180, 200);
-        for (int i = 0; i < edges.cols(); i++) {
-            double[] vec = edges.get(0, i);
-            double x1 = vec[0],
+        Imgproc.HoughLinesP(palm, edges, 1, Math.PI / 180, 20, 100, 100);
+        for (int i = 0; i < edges.rows(); i++) {
+            double[] vec = edges.get(i, 0);
+            double  x1 = vec[0],
                     y1 = vec[1],
                     x2 = vec[2],
                     y2 = vec[3];
             Point start = new Point(x1, y1);
             Point end = new Point(x2, y2);
-
-            Imgproc.line(palm, start, end, new Scalar(255,0,0), 3);
+            if (Math.sqrt((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2)) > 400) Imgproc.line(original_image, start, end, new Scalar(255,0,0), 3);
         }
 
         // convert to bitmap:
         Bitmap bm = Bitmap.createBitmap(palm.cols(), palm.rows(),Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(palm, bm);
+        Utils.matToBitmap(original_image, bm);
 
         // find the imageview and draw it!
         ImageView iv = (ImageView) findViewById(R.id.activity_main);
