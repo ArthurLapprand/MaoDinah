@@ -39,10 +39,13 @@ import static android.R.attr.bitmap;
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private static final String TAG = "MAODINAH";
-    public static final int CAMERA_REQUEST_CODE = 1;
-    static boolean initialized;
+    public static final int CAMERA_REQUEST_CODE = 1; // USADO PARA PERMISSÕES
+    static boolean initialized; // TESTA SE INICIALIZOU O OPENCV, A INICIALIZAÇÃO É ESTÁTICA
     static int height;
     static int width;
+
+    // USADOS EM TRANSFORMAÇÕES E PROCESSAMENTO DE IMAGENS
+    // EX. CANNY E HOUGHLINESP
     static double limiarSuperior = 90;
     static double limiarInferior = 45;
     static Mat edges;
@@ -53,8 +56,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     static double[] vec;
     static double x1, x2, y1, y2;
     static Point start, end;
+
     static Mat matGlobal;
 
+    // INICIALIZAÇÃO ESTÁTICA
     static {
         if (!OpenCVLoader.initDebug()) {
             // do something
@@ -64,6 +69,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
     }
 
+    /**
+     * USADOS PARA CÁLCULOS DE CORES HSV, CENTRO DA PALMA DA MÃO,
+     * PONTAS DOS DEDOS E OUTROS EXPERIMENTOS REALIZADOS
+      */
     JavaCameraView javaCameraView;
     private boolean tocou = false;
     private Point centroid;
@@ -90,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         checarPerms();
         getSupportActionBar().hide();
         setContentView(R.layout.activity_main);
-
 
         // seta a view da camera
         javaCameraView = (JavaCameraView) findViewById(R.id.camera_view);
@@ -127,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             case CAMERA_REQUEST_CODE: {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // CASO TENHA SIDO ACEITO, FAZER ALGO SE NECESSÁRIO
                 } else {}
             }
         }
@@ -145,8 +154,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         lowerBound = new Scalar(3);
         upperBound = new Scalar(3);
         centroid = new Point(-1, -1);
-        setScaleFactors(width, height);
-        hullPoints = new MatOfPoint();
+        setScaleFactors(width, height); // usado para compatibilidade em outras resoluções
+        hullPoints = new MatOfPoint(); // usados para achar as concavidades entre os dedos
         hull = new MatOfInt();
     }
 
@@ -161,10 +170,16 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        matGlobal = inputFrame.rgba();
-        return paulsMethodForImageTransformation(inputFrame.rgba());
+        matGlobal = inputFrame.rgba(); // frame global usado em contas de HSV
+        return paulsMethodForImageTransformation(inputFrame.rgba()); // frame processado mostrado na tela
     }
 
+    /**
+     * CALCULA A MÉDIA HSV DO TOM DE PELE
+     * A MÉDIA É RECALCULADA BASEADA NA COR HSV EM UM QUADRADO
+     * NO CENTRO DA TELA, PORTANTO É NECESSÁRIO MANTER A PALMA
+     * DA MÃO NO CENTRO
+      */
     private void setHSVavg(Mat frame) {
 
         int x = (int) centroid.x;
@@ -193,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         MatrizTocada = frame.submat(retanguloTocado);
 
+        // SOMATÓRIO DAS CORES DO QUADRADO
         Imgproc.cvtColor(MatrizTocada, MatrizTocada, Imgproc.COLOR_RGB2HSV_FULL);
         Scalar somatorioCores = Core.sumElems(MatrizTocada);
         int total = retanguloTocado.width * (retanguloTocado.height);
@@ -200,6 +216,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         assignHSV(avgHSV);
     }
 
+    /**
+     * AJUSTA VALORES MEDIANOS HSV
+     */
     private void assignHSV(double avgHSV[]) {
         //B
         minHSV.val[0] = (avgHSV[0] > 10) ? avgHSV[0] - 10 : 0;
@@ -212,7 +231,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         maxHSV.val[2] = (avgHSV[2] < 155) ? avgHSV[2] + 100 : 255;
     }
 
-
+    /**
+     * AJUSTA OS TAMANHOS DE RESOLUÇÃO INICIAIS
+     * PARA VALORES CONDIZENTES COM O DISPOSITIVO
+     */
     protected void setScaleFactors(int vidWidth, int vidHeight) {
         float deviceWidth = javaCameraView.getWidth();
         float deviceHeight = javaCameraView.getHeight();
@@ -231,6 +253,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
     }
 
+    /**
+     * ESTE MÉTODO ERA USADO PARA COMEÇAR A CALCULAR A MÉDIA
+     * HSV QUANDO A TELA FOSSE TOCADA
+     */
     public boolean onTouchEvent(MotionEvent event) {
 
 //        if (!tocou) {
@@ -261,6 +287,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         return false;
     }
 
+    /**
+     * ENCONTRA OS CONTORNOS DE UM FRAME
+     * RETORNA UM ARRAYLIST DE MATRIZ DE PONTOS
+     */
     private ArrayList<MatOfPoint> getAllContornos(Mat frame) {
         framesegundo = frame.clone();
         ArrayList<MatOfPoint> contor = new ArrayList<MatOfPoint>();
@@ -273,6 +303,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         return contor;
     }
 
+    /**
+     * RETORNA A POSIÇÃO DO CONTORNO QUE
+     * CONTÉM O CENTRO DA MÃO
+     */
     protected int getPalmContour(List<MatOfPoint> contours) {
 
         Rect roi;
@@ -285,6 +319,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         return indexOfMaxContour;
     }
 
+    /**
+     * CALCULA A DISTANCIA APROXIMADA DE CADA PIXEL PARA
+     * O PIXEL ZERO MAIS PRÓXIMO AFIM DE ENCONTRAR
+     * UM NOVO PONTO DE DESLOCAMENTO, QUE VAI RETORNAR O CENTRO
+     * DA PALMA
+     */
     protected Point getDistanceTransformCenter(Mat frame) {
 
         Imgproc.distanceTransform(frame, frame, Imgproc.CV_DIST_L2, 3);
@@ -293,7 +333,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         Imgproc.threshold(frame, frame, 254, 255, Imgproc.THRESH_TOZERO);
         Core.findNonZero(frame, nonZero);
 
-        // have to manually loop through matrix to calculate sums
         int sumx = 0, sumy = 0;
         if (nonZero.rows() > 0) {
             for (int i = 0; i < nonZero.rows(); i++) {
@@ -307,6 +346,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         return new Point(sumx, sumy);
     }
 
+    /**
+     * ESTE MÉTODO ERA USADO PARA ENCONTRAR
+     * OS PONTOS EM CONCAVIDADES NO FRAME
+     */
     protected List<Point> getConvexHullPoints(MatOfPoint contour) {
         Imgproc.convexHull(contour, hull);
         List<Point> hullPoints = new ArrayList<>();
@@ -316,13 +359,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         return hullPoints;
     }
 
+    // DISTÂNCIA EUCLIDIANA
     protected double getEuclDistance(Point one, Point two) {
         return Math.sqrt(Math.pow((two.x - one.x), 2)
                 + Math.pow((two.y - one.y), 2));
     }
 
+    /**
+     * MÉTODO ERA USADO PARA ENCONTRAR OS PONTOS
+     * QUE INDICAM AS PONTAS DOS DEDOS
+     */
     protected List<Point> getDedos(List<Point> hullPoints, int rows) {
-        // group into clusters and find distance between each cluster. distance should approx be same
         double betwFingersThresh = 80;
         double distFromCenterThresh = 80;
         double thresh = 80;
@@ -348,22 +395,22 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         return fingerTips;
     }
 
-
+    /**
+     * MÉTODO QUE TRABALHA SOBRE O FRAME DE ENTRADA
+     * PARA RETORNAR O FRAME PROCESSADO
+     */
     public Mat paulsMethodForImageTransformation(Mat inputFrame) {
         //if  (tocou){
         frame = matGlobal.clone();
         Imgproc.GaussianBlur(frame, frame, new Size(9, 9), 5);
 
-            /*
-            int x = Math.round((event.getX()));
-            int y = Math.round((event.getY()));
-            */
         int x = Math.round(((javaCameraView.getWidth() / 2) - offsetFactX) * scaleFactX);
         int y = Math.round(((javaCameraView.getHeight() / 2) - offsetFactY) * scaleFactY);
 
         int rows = frame.rows();
         int cols = frame.cols();
 
+        // se as mudanças na escala não batem com o real, retorna o frame normal
         if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) {
             Log.d(TAG, "ENTREI ANTES");
             return inputFrame;
@@ -372,8 +419,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         centroid.x = x;
         centroid.y = y;
 
-        setHSVavg(frame);
+        setHSVavg(frame); // média HSV
 
+        // procura mão por tom de pele
         frame = inputFrame.clone();
         Imgproc.GaussianBlur(frame, frame, new Size(9, 9), 5);
         Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV_FULL);
@@ -382,14 +430,18 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         contornos = getAllContornos(frame);
         int indiceContorno = getPalmContour(contornos);
 
+        // caso não haja contorno com o centro da mão, retorna frame normal
         if (indiceContorno == -1) {
             Log.d(TAG, "ENTREI INDEX -1");
             return inputFrame;
         } else {
+            // caso haja, calcula o retângulo da mão e o da palma da mão
             Point center = getDistanceTransformCenter(frame);
             Rect handRect = Imgproc.boundingRect(contornos.get(indiceContorno));
             double radius = handRect.height / 2.66;
             Rect palmRect = new Rect((int) (center.x - radius), (int) (center.y - radius), (int) (radius * 2), (int) (radius * 2));
+
+            // PARTE NÃO USADA, POIS NÃO PRECISAMOS DAS PONTAS DOS DEDOS
             //frame = new Mat(matGlobal.clone(), roi);
 //            List<Point> hullPoints = getConvexHullPoints(contornos.get(indiceContorno));
 //            dedos = getDedos(hullPoints, frame.rows());
@@ -401,7 +453,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             //Imgproc.rectangle(frame, roi.tl(), roi.br(), new Scalar(255), 4);
             //Imgproc.circle(frame, palma, roi.height / 3, new Scalar(255)); // circulo
             //Imgproc.drawContours(frame, contornos, -1, new Scalar(200, 200, 0), 2);
+
+
+            // retângulo do tamanho da imagem original
             Rect imgRect = new Rect(0, 0, inputFrame.width(), inputFrame.height());
+
+            // ENCONTRA COORDENADAS RESTANTES DO RETÂNGULO
+            // DA PALMA DA MÃO
 
             // TOP RIGHT
             Point tr = new Point();
@@ -413,17 +471,36 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             bl.x = palmRect.tl().x;
             bl.y = palmRect.br().y;
 
+            // CASO O RETÂNGULO DA PALMA ESTEJA COMPLETO NA TELA
             if (imgRect.contains(palmRect.br()) && imgRect.contains(palmRect.tl()) && imgRect.contains(tr) && imgRect.contains(bl)) {
                 Mat original_image = inputFrame.clone();
                 Log.d(TAG, "RETORNANDO SUBMAT");
                 Log.d(TAG, "TOP_LEFT = " + palmRect.tl() + "  TOP_RIGHT = " + tr + "  BOTTOM_LEFT = " + bl + "  BOTTOM_RIGHT = " + palmRect.br());
-                Mat teste = new Mat(original_image.size(), original_image.type(), new Scalar(0, 0, 0));
-                Imgproc.rectangle(teste, palmRect.tl(), palmRect.br(), new Scalar(255), 4);
-                Mat temp = original_image.submat(palmRect);
+
+                Mat palm = new Mat(original_image.size(), original_image.type(), new Scalar(0, 0, 0)); // cria frame preto
+                //Imgproc.rectangle(palm, palmRect.tl(), palmRect.br(), new Scalar(255), 4); // desenha retângulo da palma
+
+                Mat temp = original_image.submat(palmRect); // recorta a palma da imagem original
                 Mat mask = temp.clone();
-                //Mat mask = new Mat(temp.size(), CvType.CV_8U, new Scalar(0, 0, 0));
-                temp.copyTo(teste, mask);
-                Imgproc.resize(teste, teste, original_image.size());
+                temp.copyTo(palm, mask);
+                Imgproc.resize(palm, palm, original_image.size()); // estica recorte para a tela toda
+
+                // converte imagem para escala de cinza
+                Imgproc.cvtColor(palm,palm, Imgproc.COLOR_BGRA2GRAY);
+
+                // matriz usada para aplidar o gradient
+                Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(3, 3));
+                Imgproc.morphologyEx(palm, palm, Imgproc.MORPH_GRADIENT, kernel2, new Point(2, 2), 4);
+
+                // equaliza o histograma para realçar linhas e detalhes
+                Imgproc.equalizeHist(palm, palm);
+
+                // filtra regiões mais escuras (ex. linhas)
+                // este processamento não está ótimo pois a partir daqui
+                // o projeto foi mudado para um de imagem estática
+                Imgproc.threshold(palm, palm, 240, 255,Imgproc.THRESH_BINARY);
+
+                // REGIÃO DE TESTES
 //                Mat inMat = inputFrame.submat(palmRect);
 //                Mat mask = new Mat(palmRect.size(), CvType.CV_8UC4);
 //                Mat out = new Mat(inputFrame.size(), inputFrame.type(), new Scalar(0, 0, 0));
@@ -433,9 +510,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 //Mat mask = new Mat(cropped.rows(), cropped.cols(), inputFrame.type());
                 //cropped.copyTo(teste, mask);
                 Log.d(TAG, "SAI");
-                return teste;
+                return palm;
             }
             else {
+                // CASO NÃO ESTEJA, RETORNA FRAME NORMAL
                 Log.d(TAG, "RETORNANDO NORMAL DEPOIS DE SUBMAT");
                 return inputFrame;
             }
