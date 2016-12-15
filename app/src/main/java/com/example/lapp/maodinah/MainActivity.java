@@ -21,6 +21,7 @@ public class MainActivity extends Activity  {
 
     static boolean initialized;
     static boolean boo = false;
+
     static {
         if (!OpenCVLoader.initDebug()) {
             // do something
@@ -144,6 +145,21 @@ public class MainActivity extends Activity  {
         int aux1 = 0;
         int aux2 = 0;
         int aux3 = 0;
+        double min1x = original_image.width();
+        double max1x = 0;
+        double min2x = original_image.width();
+        double max2x = 0;
+        double min3x = original_image.width();
+        double max3x = 0;
+
+        double min1y = original_image.height();
+        double max1y = 0;
+        double min2y = original_image.height();
+        double max2y = 0;
+        double min3y = original_image.height();
+        double max3y = 0;
+
+
         Imgproc.line(original_image, pontocima , pontocima, new Scalar(0,255,0),50);
         Imgproc.line(original_image, pontomeio , pontomeio, new Scalar(0,255,0),50);
         Imgproc.line(original_image, pontobaixo , pontobaixo, new Scalar(0,255,0),50);
@@ -170,18 +186,45 @@ public class MainActivity extends Activity  {
                 aux = aux+1;
                 //BAIXO
                 if((a < b) &&( a < c)){
-                    resultanteai[aux1] = (start);
+                    resultanteai[aux1] = start;
                     resultanteaf[aux1] = end;
+                    if(start.x < min1x) min1x = start.x;
+                    if(end.x < min1x) min1x = end.x;
+                    if(start.x > max1x) max1x = start.x;
+                    if(end.x > max1x) max1x = end.x;
+
+                    if(start.y < min1y) min1y = start.y;
+                    if(end.y < min1y) min1y = end.y;
+                    if(start.y > max1y) max1y = start.y;
+                    if(end.y > max1y) max1y = end.y;
                     aux1 = aux1+1;
                 } //CIMA
                  else if((c < b) &&( c < a)){
                     resultantebi[aux2] = start;
                     resultantebf[aux2] = end;
+                    if(start.x < min2x) min2x = start.x;
+                    if(end.x < min2x) min2x = end.x;
+                    if(start.x > max2x) max2x = start.x;
+                    if(end.x > max2x) max2x = end.x;
+
+                    if(start.y < min2y) min2y = start.y;
+                    if(end.y < min2y) min2y = end.y;
+                    if(start.y > max2y) max2y = start.y;
+                    if(end.y > max2y) max2y = end.y;
                     aux2 = aux2+1;
                 } // MEIO
                 else {
                     resultanteci[aux3] = start;
                     resultantecf[aux3] = end;
+                    if(start.x < min3x) min3x = start.x;
+                    if(end.x < min3x) min3x = end.x;
+                    if(start.x > max3x) max3x = start.x;
+                    if(end.x > max3x) max3x = end.x;
+
+                    if(start.y < min3y) min3y = start.y;
+                    if(end.y < min3y) min3y = end.y;
+                    if(start.y > max3y) max3y = start.y;
+                    if(end.y > max3y) max3y = end.y;
                     aux3 = aux3+1;
                 }
 
@@ -189,9 +232,19 @@ public class MainActivity extends Activity  {
             }
         }
 
-        for(int i = 0; i < aux2; i++){
-       Imgproc.line(original_image,resultantebi[i], resultantebf[i], new Scalar(255,0,0), 3);
-        }
+        Point p1 = new Point(min1x,min1y);
+        Point p2 = new Point(min2x,min2y);
+        Point p3 = new Point(min3x,min3y);
+        Point p4 = new Point(max1x,max1y);
+        Point p5 = new Point(max2x,max2y);
+        Point p6 = new Point(max3x,max3y);
+        Imgproc.line(original_image,p1, p4, new Scalar(255,0,0), 3);
+        Imgproc.line(original_image,p2, p5, new Scalar(255,0,0), 3);
+        Imgproc.line(original_image,p3, p6, new Scalar(255,0,0), 3);
+
+//        for(int i = 0; i < aux3; i++){
+//       Imgproc.line(original_image,resultanteci[i], resultantecf[i], new Scalar(255,0,0), 3);
+//        }
 
 //
 //        for (int i = 0; i < aux; i++){
